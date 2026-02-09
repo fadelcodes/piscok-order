@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Banana Crispy | Premium Order System</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --p: #FFDE59;
+            --p-light: #FFF8D6;
+            --s: #463126;
+            --acc: #FF914D;
+            --bg: #FFFDF5; 
+            --w: #FFFFFF;
+            --red: #e74c3c;
+            --sh: 0 10px 25px rgba(70, 49, 38, 0.08);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; overflow-x: hidden; margin: 0; padding: 0; background: var(--bg); color: var(--s); font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; }
+        body { padding-bottom: 160px; }
+
+        header { background: var(--p); padding: 40px 20px 70px; text-align: center; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; position: relative; }
+        .logo-h1 { font-family: 'Fredoka'; font-size: 38px; margin: 0; color: var(--s); line-height: 0.9; text-transform: uppercase; }
+        
+        .container { width: 100%; max-width: 450px; margin: -35px auto 0; padding: 0 15px; }
+
+        .glass-tracker { background: var(--s); color: white; border-radius: 25px; padding: 18px; margin-bottom: 20px; box-shadow: var(--sh); position: relative; }
+        
+        /* ANIMASI TRACKING */
+        #track-result {
+            margin-top: 10px; font-size: 11px; display: none; 
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;
+            animation: slideDown 0.4s ease forwards;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { 
+            background: var(--w); border-radius: 25px; padding: 12px; margin-bottom: 15px; 
+            display: flex; align-items: center; gap: 12px; box-shadow: var(--sh); 
+            position: relative; overflow: hidden; border: 1.5px solid white;
+            transition: transform 0.3s ease;
+        }
+        .card:active { transform: scale(0.98); }
+
+        .img-wrapper { 
+            width: 75px; height: 75px; border-radius: 50%; overflow: hidden; 
+            flex-shrink: 0; border: 3px solid var(--p); cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .img-wrapper:hover { transform: rotate(5deg) scale(1.1); }
+        .img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        
+        #zoom-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); 
+            display: none; align-items: center; justify-content: center; 
+            z-index: 999999; backdrop-filter: blur(5px); padding: 30px;
+        }
+        .zoom-content {
+            background: white; padding: 10px; border-radius: 30px;
+            width: 100%; max-width: 320px; position: relative;
+            animation: popIn 0.3s ease-out;
+        }
+        .zoom-content img { width: 100%; border-radius: 20px; display: block; }
+        .close-zoom {
+            position: absolute; top: -10px; right: -10px; background: var(--red);
+            color: white; width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; border: 2px solid white;
+        }
+
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .input-hd { width: 100%; padding: 14px; margin-bottom: 10px; border-radius: 12px; border: 1.5px solid #F0F0F0; outline: none; font-size: 14px; }
+        .btn-gps { background: #3498db; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-gps.active { background: #27ae60; }
+
+        /* PAYMENT STYLES */
+        #qr-payment { display: none; background: #f9f9f9; border-radius: 20px; padding: 15px; margin-top: 15px; border: 2px dashed #ddd; }
+        .copy-box { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .step-pay { font-size: 10px; text-align: left; color: #666; margin-top: 10px; }
+
+        footer { background: var(--s); color: white; padding: 40px 15px; margin-top: 50px; border-top-left-radius: 40px; border-top-right-radius: 40px; text-align: center; }
+
+        /* ADMIN */
+        .admin-order-card { background: white; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: var(--sh); font-size: 13px; border: 1px solid #f0f0f0; color: var(--s); }
+        .admin-map-link { background: #f0f7ff; color: #007bff; padding: 10px; border-radius: 12px; display: block; text-decoration: none; margin: 10px 0; font-weight: 700; border: 1px dashed #007bff; text-align: center; }
+        .tab-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 800; font-size: 11px; cursor: pointer; background: #eee; }
+        .tab-btn.active { background: var(--p); color: var(--s); }
+        .btn-status { border: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 12px; color: white; cursor: pointer; }
+
+        .hidden { display: none !important; }
+        .btn-main { background: var(--s); color: white; border: none; padding: 16px; border-radius: 18px; width: 100%; font-weight: 800; cursor: pointer; }
+        
+        .sold-out-overlay { position: absolute; inset:0; background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; z-index:2; }
+        .sold-out-stamp { border: 3px solid var(--red); color: var(--red); padding: 5px 10px; font-weight: 900; border-radius: 10px; transform: rotate(-15deg); }
+    </style>
+</head>
+<body>
+
+<div id="zoom-modal" onclick="closeZoom()">
+    <div class="zoom-content" onclick="event.stopPropagation()">
+        <div class="close-zoom" onclick="closeZoom()"><i class="fas fa-times"></i></div>
+        <img id="img-target" src="">
+        <div id="img-caption" style="text-align:center; padding:15px 5px; font-weight:800; font-family:'Fredoka'; color:var(--s);"></div>
+    </div>
+</div>
+
+<div id="view-public">
+    <header>
+        <button onclick="document.getElementById('modal-login').style.display='flex'" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.3); border:none; padding:8px; border-radius:12px;"><i class="fas fa-cog"></i></button>
+        <h1 class="logo-h1">BANANA<br>CRISPY</h1>
+        <div style="font-weight:800; font-size:12px; opacity:0.8;">PREMIUM SNACK QUALITY</div>
+    </header>
+
+    <div class="container">
+        <div class="glass-tracker">
+            <div style="font-size:12px; font-weight:700; margin-bottom:8px;"><i class="fas fa-search"></i> Lacak Status Pesanan</div>
+            <div style="display: flex; gap: 6px;">
+                <input type="tel" id="trackPhone" placeholder="Masukkan No. WA..." style="flex:1; padding:12px; border-radius:12px; border:none; outline:none; font-size:13px;">
+                <button onclick="checkStatus()" style="background:var(--p); border:none; padding:0 18px; border-radius:12px; color:var(--s);"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div id="track-result"></div>
+        </div>
+
+        <div id="product-list"></div>
+
+        <div class="input-group" style="background:white; padding:20px; border-radius:25px; box-shadow:var(--sh); margin-top:20px;">
+            <h4 style="margin:0 0 15px; font-family:'Fredoka'; color:var(--s);">Data Pengiriman</h4>
+            <input type="text" id="custName" class="input-hd" placeholder="Nama Lengkap">
+            <input type="tel" id="custPhone" class="input-hd" placeholder="WhatsApp (08xxx)">
+            
+            <button id="btn-location" class="btn-gps" onclick="getLocation()">
+                <i class="fas fa-map-marker-alt"></i> Ambil Titik GPS Otomatis
+            </button>
+            <p style="font-size:10px; color:#888; margin:5px 0 15px; line-height:1.4;">* Aktifkan GPS HP Anda agar kurir akurat menemukan rumah Anda.</p>
+
+            <textarea id="custAddr" class="input-hd" placeholder="Alamat Lengkap & Patokan Rumah" rows="2"></textarea>
+            
+            <h4 style="margin:15px 0 10px; font-family:'Fredoka'; color:var(--s);">Pembayaran</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <label onclick="setPay('cod')">
+                    <input type="radio" name="payment" value="cod" checked style="display:none;">
+                    <div id="box-cod" style="border:2px solid var(--p); padding:12px; border-radius:15px; text-align:center; background:var(--p-light);">
+                        <i class="fas fa-wallet"></i><br><b style="font-size:12px;">COD</b>
+                    </div>
+                </label>
+                <label id="label-transfer" onclick="setPay('transfer')" style="opacity:0.3; pointer-events:none;">
+                    <input type="radio" name="payment" value="transfer" style="display:none;">
+                    <div id="box-transfer" style="border:1.5px solid #eee; padding:12px; border-radius:15px; text-align:center;">
+                        <i class="fas fa-university"></i><br><b style="font-size:12px;">TRANSFER</b>
+                    </div>
+                </label>
+            </div>
+            <p id="note-delivery" style="font-size:10px; color:var(--red); margin-top:10px; font-weight:700;">* Pesanan minimal 2 untuk layanan antar!</p>
+
+            <div id="qr-payment">
+                <div style="font-size:12px; font-weight:800; color:var(--s); margin-bottom:10px;">PEMBAYARAN GOPAY / QRIS</div>
+                <img src="img/barcode.jpeg" style="width:100%; max-width:180px; border-radius:10px; margin-bottom:10px;">
+                
+                <div class="copy-box">
+                    <span style="font-size:12px; font-weight:700;" id="num-gopay">085813509210</span>
+                    <button onclick="copyNum()" style="border:none; background:var(--p); padding:5px 10px; border-radius:8px; font-size:10px; font-weight:800;">SALIN</button>
+                </div>
+                <div style="font-size:10px; font-weight:700; color:#888;">A/N: BANANA CRISPY OWNER</div>
+
+                <div class="step-pay">
+                    <b>Langkah Transfer:</b><br>
+                    1. Salin nomor atau Scan QRIS diatas.<br>
+                    2. Bayar sesuai total belanja.<br>
+                    3. Screenshot bukti bayar.<br>
+                    4. Klik tombol "KIRIM WA" & lampirkan bukti bayar.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div style="font-family:'Fredoka'; font-size:24px; color:var(--p);">BANANA CRISPY</div>
+        <div style="font-size:11px; opacity:0.5; margin-top:10px;">Official Store &copy; 2026</div>
+    </footer>
+
+    <div id="cart-nav" style="display:none; position:fixed; bottom:0; width:100%; background:white; padding:15px 20px 30px; border-top-left-radius:30px; border-top-right-radius:30px; box-shadow:0 -10px 30px rgba(0,0,0,0.08); z-index:1000;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-size:14px; color:var(--s);"><b id="total-qty">0</b> Item</div>
+            <div id="total-price" style="font-size:20px; font-weight:800; color:var(--s);">Rp0</div>
+        </div>
+        <button class="btn-main" onclick="handleCheckout()">KIRIM PESANAN KE WA</button>
+    </div>
+</div>
+
+<div id="view-admin" class="hidden">
+    <div style="background:var(--s); color:white; padding:30px 15px; text-align:center; border-bottom-left-radius:30px; border-bottom-right-radius:30px;">
+        <h3 style="font-family:'Fredoka'; margin:0;">Dashboard Admin</h3>
+        <button onclick="logout()" style="background:var(--red); border:none; color:white; padding:6px 12px; border-radius:8px; margin-top:10px; font-weight:800; font-size:11px;">LOGOUT</button>
+    </div>
+    <div class="container" style="margin-top:20px;">
+        <div id="admin-stok" style="background:white; padding:15px; border-radius:20px; box-shadow:var(--sh); margin-bottom:20px;"></div>
+        
+        <div class="admin-tabs" style="display:flex; gap:5px; margin-bottom:15px;">
+            <button class="tab-btn active" onclick="switchTab('pending')">Pending</button>
+            <button class="tab-btn" onclick="switchTab('proses')">Proses</button>
+            <button class="tab-btn" onclick="switchTab('selesai')">Selesai</button>
+            <button class="tab-btn" onclick="switchTab('riwayat')">Riwayat</button>
+        </div>
+        <div id="admin-orders-list"></div>
+    </div>
+</div>
+
+<div id="modal-login" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; display:none; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:white; padding:25px; border-radius:25px; width:100%; max-width:320px;">
+        <h3 style="margin-bottom:15px; font-family:'Fredoka'; text-align:center;">Admin Login</h3>
+        <input type="email" id="email" class="input-hd" placeholder="Email">
+        <input type="password" id="pass" class="input-hd" placeholder="Password">
+        <button class="btn-main" onclick="login()">MASUK</button>
+        <button onclick="document.getElementById('modal-login').style.display='none'" style="width:100%; border:none; background:transparent; margin-top:10px; font-size:12px; color:#888;">Batal</button>
+    </div>
+</div>
+
+<script>
+    const S_URL = 'https://fuzcxajjyvyedqfkphsk.supabase.co';
+    const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1emN4YWpqeXZ5ZWRxZmtwaHNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NjAwMTgsImV4cCI6MjA4NjEzNjAxOH0.xGtmvn-nzTLz8uD9K5hQz0dEIw65e17iC-RzSXa0DFg';
+    const sb = supabase.createClient(S_URL, S_KEY);
+
+    const MENU = [
+        { id: 'p1', name: 'Kripik Pisang Coklat', price: 10000, img: 'https://i.pinimg.com/736x/9d/67/16/9d6716a78c324662a64694e6093d456c.jpg' },
+        { id: 'p2', name: 'Pisang Coklat Lumer (Isi 3)', price: 6000, img: 'https://i.pinimg.com/736x/d1/fd/ae/d1fdae87216375aac790e0faa5fec444.jpg' }
+    ];
+
+    let cart = {};
+    let currentTab = 'pending';
+    let userLoc = "";
+
+    async function init() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) renderAdmin(); else renderPublic();
+    }
+
+    // ZOOM
+    window.zoomImg = (url, name) => {
+        document.getElementById('img-target').src = url;
+        document.getElementById('img-caption').innerText = name;
+        document.getElementById('zoom-modal').style.display = 'flex';
+    }
+    window.closeZoom = () => { document.getElementById('zoom-modal').style.display = 'none'; }
+
+    // COPY
+    window.copyNum = () => {
+        const num = document.getElementById('num-gopay').innerText;
+        navigator.clipboard.writeText(num);
+        alert("Nomor Gopay berhasil disalin!");
+    }
+
+    // GPS
+    function getLocation() {
+        const btn = document.getElementById('btn-location');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        navigator.geolocation.getCurrentPosition((p) => {
+            userLoc = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
+            btn.innerHTML = '<i class="fas fa-check"></i> Lokasi Terkunci';
+            btn.classList.add('active');
+        }, () => { alert("Gagal mengambil GPS!"); btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Coba Lagi'; });
+    }
+
+    // TRACKING DENGAN ANIMASI
+    window.checkStatus = async () => {
+        const ph = document.getElementById('trackPhone').value;
+        const res = document.getElementById('track-result');
+        if(!ph) return;
+        
+        res.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        res.style.display = 'block';
+
+        const { data, error } = await sb.from('orders').select('*').eq('phone', ph).order('created_at', { ascending: false }).limit(1);
+        
+        if(data && data.length > 0) {
+            const o = data[0];
+            const color = o.status === 'pending' ? '#FF914D' : o.status === 'proses' ? '#3498db' : '#27ae60';
+            res.innerHTML = `
+                <div style="background:rgba(255,255,255,0.1); padding:10px; border-radius:10px; margin-top:5px;">
+                    Status: <b style="color:${color}">${o.status.toUpperCase()}</b><br>
+                    Pesanan: ${o.items}
+                </div>`;
+        } else {
+            res.innerHTML = '❌ Pesanan tidak ditemukan.';
+        }
+
+        // Hilang otomatis setelah 5 detik
+        setTimeout(() => {
+            res.style.opacity = '0';
+            setTimeout(() => { res.style.display = 'none'; res.style.opacity = '1'; }, 400);
+        }, 5000);
+    }
+
+    async function renderPublic() {
+        const { data: st } = await sb.from('stok').select('*');
+        document.getElementById('product-list').innerHTML = MENU.map(m => {
+            const isHabis = st?.find(s => s.menu_id === m.id)?.is_available === false;
+            return `
+                <div class="card">
+                    ${isHabis ? '<div class="sold-out-overlay"><div class="sold-out-stamp">HABIS</div></div>' : ''}
+                    <div class="img-wrapper" onclick="zoomImg('${m.img}', '${m.name}')"><img src="${m.img}"></div>
+                    <div style="flex:1">
+                        <div style="font-weight:800; font-size:14px;">${m.name}</div>
+                        <div style="background:var(--p); padding:2px 8px; border-radius:8px; display:inline-block; font-size:12px; font-weight:800;">Rp${m.price.toLocaleString()}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; background:#F5F5F5; padding:8px 12px; border-radius:12px; ${isHabis ? 'display:none' : ''}">
+                        <button onclick="qty('${m.id}', -1)" style="border:none; font-weight:800; background:transparent; padding:5px;">-</button>
+                        <span id="q-${m.id}" style="font-weight:800;">0</span>
+                        <button onclick="qty('${m.id}', 1)" style="border:none; font-weight:800; background:transparent; padding:5px;">+</button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    window.qty = (id, v) => { 
+        cart[id] = Math.max(0, (cart[id] || 0) + v); 
+        document.getElementById(`q-${id}`).innerText = cart[id]; 
+        calculate(); 
+    }
+
+    function calculate() {
+        let t = 0, q = 0;
+        MENU.forEach(m => { if(cart[m.id]) { t += cart[m.id]*m.price; q += cart[m.id]; }});
+        document.getElementById('total-qty').innerText = q;
+        document.getElementById('total-price').innerText = `Rp${t.toLocaleString()}`;
+        document.getElementById('cart-nav').style.display = q > 0 ? 'block' : 'none';
+        
+        const btnTf = document.getElementById('label-transfer');
+        const note = document.getElementById('note-delivery');
+        if(q >= 2) {
+            btnTf.style.opacity = "1"; btnTf.style.pointerEvents = "auto"; note.style.display = "none";
+        } else {
+            btnTf.style.opacity = "0.3"; btnTf.style.pointerEvents = "none"; note.style.display = "block"; setPay('cod');
+        }
+    }
+
+    function setPay(type) {
+        const isTf = type === 'transfer';
+        document.getElementById('box-cod').style.background = isTf ? 'white' : 'var(--p-light)';
+        document.getElementById('box-cod').style.border = isTf ? '2px solid var(--p)' : '1.5px solid #eee';
+        document.getElementById('box-transfer').style.background = isTf ? 'var(--p-light)' : 'white';
+        document.getElementById('box-transfer').style.border = isTf ? '2px solid var(--p)' : '1.5px solid #eee';
+        document.getElementById('qr-payment').style.display = isTf ? 'block' : 'none';
+        document.querySelector(`input[value="${type}"]`).checked = true;
+    }
+
+    window.handleCheckout = async () => {
+        const n = document.getElementById('custName').value, a = document.getElementById('custAddr').value, p = document.getElementById('custPhone').value;
+        if(!n || !a || p.length < 10) return alert("Harap isi Nama, No WA, dan Alamat!");
+        
+        const items = MENU.filter(m => cart[m.id] > 0).map(m => `${m.name} (${cart[m.id]}x)`).join(", ");
+        const total = document.getElementById('total-price').innerText;
+        const type = document.querySelector('input[name="payment"]:checked').value.toUpperCase();
+
+        const { error } = await sb.from('orders').insert([{ customer_name: n, phone: p, address: a, gps_link: userLoc, items, total_price: total, status: 'pending' }]);
+        
+        if(!error) {
+            let msg = `*PESANAN BANANA CRISPY*\n*Nama:* ${n}\n*WA:* ${p}\n*Order:* ${items}\n*Total:* ${total}\n*Bayar:* ${type}\n*Alamat:* ${a}\n${userLoc ? '*MAP:* ' + userLoc : ''}`;
+            window.location.href = `https://wa.me/6285813509210?text=${encodeURIComponent(msg)}`;
+        } else {
+            alert("Gagal menyimpan pesanan. Coba lagi.");
+        }
+    }
+
+    // --- ADMIN LOGIC ---
+    async function renderAdmin() {
+        document.getElementById('view-public').classList.add('hidden');
+        document.getElementById('view-admin').classList.remove('hidden');
+        
+        const { data: st } = await sb.from('stok').select('*');
+        document.getElementById('admin-stok').innerHTML = `
+            <h4 style="margin:0 0 10px; font-family:'Fredoka';">Kontrol Stok</h4>
+            ` + MENU.map(m => {
+            const isAv = st?.find(s => s.menu_id === m.id)?.is_available !== false;
+            return `<div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;"><b style="font-size:12px;">${m.name}</b> <button onclick="toggleStock('${m.id}', ${isAv})" style="background:${isAv?'#27ae60':'#e74c3c'}; color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:800; font-size:10px;">${isAv?'ADA':'HABIS'}</button></div>`;
+        }).join('');
+        loadOrders();
+    }
+
+    async function loadOrders() {
+        // PERBAIKAN: Memastikan data diambil berdasarkan status tab
+        const { data: ord, error } = await sb.from('orders').select('*').eq('status', currentTab).order('created_at', { ascending: false });
+        
+        const list = document.getElementById('admin-orders-list');
+        if(error) { list.innerHTML = "Error mengambil data."; return; }
+
+        list.innerHTML = ord.map(o => {
+            const d = new Date(o.created_at);
+            const tgl = d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+            const jam = d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+            
+            let mapSection = o.gps_link ? `<a href="${o.gps_link}" target="_blank" class="admin-map-link"><i class="fas fa-map-marked-alt"></i> Buka Lokasi Pelanggan</a>` : '<p style="color:red; font-size:10px; text-align:center; margin:10px 0;">* Pelanggan tidak mengirim GPS</p>';
+
+            return `
+                <div class="admin-order-card">
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:10px;">
+                        <b style="color:var(--s);">${o.customer_name}</b>
+                        <span style="font-size:10px; color:#888;">${tgl} | ${jam}</span>
+                    </div>
+                    <div style="font-weight:700; margin-bottom:5px;">🛒 ${o.items}</div>
+                    <div style="font-size:12px; opacity:0.8; margin-bottom:5px;"><i class="fab fa-whatsapp"></i> ${o.phone}</div>
+                    <div style="font-size:12px; opacity:0.8;">🏠 ${o.address}</div>
+                    ${mapSection}
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <button onclick="upStat('${o.id}', '${currentTab==='pending'?'proses':currentTab==='proses'?'selesai':'riwayat'}')" class="btn-status" style="background:#3498db; flex:1;">KE ${currentTab==='pending'?'PROSES':currentTab==='proses'?'SELESAI':'ARSIP'}</button>
+                        <button onclick="delOrd('${o.id}')" style="background:#eee; color:red; border:none; padding:10px; border-radius:12px;"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+        }).join('') || '<p style="text-align:center; opacity:0.5; margin-top:20px;">Tidak ada pesanan di kategori ini.</p>';
+    }
+
+    window.switchTab = (t) => { 
+        currentTab = t; 
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); 
+        event.target.classList.add('active'); 
+        loadOrders(); 
+    }
+
+    window.upStat = async (id, s) => { 
+        await sb.from('orders').update({ status: s }).eq('id', id); 
+        loadOrders(); 
+    }
+
+    window.delOrd = async (id) => { 
+        if(confirm("Hapus data pesanan ini secara permanen?")) { 
+            await sb.from('orders').delete().eq('id', id); 
+            loadOrders(); 
+        } 
+    }
+
+    window.toggleStock = async (id, cur) => { 
+        await sb.from('stok').upsert({ menu_id: id, is_available: !cur }, { onConflict: 'menu_id' }); 
+        renderAdmin(); 
+    }
+
+    async function login() { 
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        const { error } = await sb.auth.signInWithPassword({ email: e, password: p }); 
+        if(!error) location.reload(); else alert("Login Gagal! Periksa email & password."); 
+    }
+
+    function logout() { sb.auth.signOut().then(()=>location.reload()); }
+    
+    init();
+</script>
+</body>
+</html>
